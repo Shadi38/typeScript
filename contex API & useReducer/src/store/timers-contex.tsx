@@ -1,6 +1,6 @@
-import {type ReactNode, createContext, useContext } from "react";
-
-type Timer = {
+import {type ReactNode, createContext, useContext, useReducer } from "react";
+//we export the Timer type so that we can use it in other components such as Timer.tsx
+export type Timer = {
     name: string;
     duration: number;
 }
@@ -8,6 +8,11 @@ type Timer = {
 type TimersState = {
     isRunning: boolean;
     timers:Timer[]
+}
+
+const initialState:TimersState = {
+    isRunning: false,
+    timers: []
 }
 
 type TimersContextValue = TimersState & {
@@ -29,13 +34,60 @@ export function useTimersContext() {
 type TimersContextProviderProps = {
     children: ReactNode;
 }
+type StartTimersAction = {
+    type: 'START_TIMERS';
+}
+type StopTimersAction = {
+    type: 'STOP_TIMERS';
+}
+type AddTimerAction = {
+    type: 'ADD_TIMER';
+    payload: Timer;
+}
+type Action = StartTimersAction | StopTimersAction | AddTimerAction;
+function timerReducer(state:TimersState, action:Action):TimersState{
+  if(action.type === 'STOP_TIMERS'){
+    return{
+        ...state,
+        isRunning: false
+    }
+}
+if(action.type === 'START_TIMERS'){
+    return{
+        ...state,
+        isRunning: true
+    }
+}
+if(action.type === 'ADD_TIMER'){
+    return{
+        ...state,
+        timers:[
+            ...state.timers, 
+            {
+                name: action.payload.name,
+                duration: action.payload.duration
+            }
+        ]
+    }
+}
+    //return the unchanged state if no action type matches
+    return state
+}
 export default function TimersContextProvider({children}:TimersContextProviderProps){
+const[timersState, dispatch] = useReducer(timerReducer, initialState)
+
     const ctx : TimersContextValue = {
-        isRunning: false,
-        timers: [],
-        addTimer: (timerData:Timer)=>{},
-        startTimers: ()=>{},
-        stopTimers: ()=>{}
+        isRunning: timersState.isRunning,
+        timers: timersState.timers,
+        addTimer: (timerData:Timer)=>{
+            dispatch({type: 'ADD_TIMER', payload: timerData})
+        },
+        startTimers: ()=>{
+            dispatch({type: 'START_TIMERS'})
+        },
+        stopTimers: ()=>{
+            dispatch({type: 'STOP_TIMERS'})
+        }
     }
     return(
     <TimersContext.Provider value={ctx}>{children}</TimersContext.Provider>
